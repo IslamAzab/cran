@@ -17,37 +17,54 @@ namespace :cran do
     end
 
     realtime do
-      packages.first(10).each do |package|
+      packages.first(1).each do |package|
       # packages.each do |package|
-        package_name    = package["Package"]
-        package_version = package["Version"]
+        name    = package["Package"]
+        version = package["Version"]
 
-        package_file_name = "#{package_name}_#{package_version}.tar.gz"
+        file_name = "#{name}_#{version}.tar.gz"
 
-        package_url = "https://cran.r-project.org/src/contrib/#{package_file_name}"
+        package_url = "https://cran.r-project.org/src/contrib/#{file_name}"
         puts package_url
 
-        download_file package_file_name
+        download_file package_url, file_name
 
+        extract_file "./packages/#{file_name}"
+
+        # create models
+        # Package
+        # Author(s)
+        # Maintainer(s)
       end
     end
 
   end
 
-  def download_file file_name
-    # url_base = "https://cran.r-project.org/src/contrib"
-    # url = "#{url_base}/#{file_name}"
-    # f = open("./packages/#{file_name}", "w")
-    Net::HTTP.start("cran.r-project.org") do |http|
-      resp = http.get("/src/contrib/#{file_name}")
-      open("./packages/#{file_name}", "wb") do |file|
-        file.write(resp.body)
+  def download_file url, file_name
+    resp = Net::HTTP.get(URI.parse(url))
+
+    IO.binwrite("./packages/#{file_name}", resp)
+  end
+
+  def extract_file file_path
+    require 'rubygems/package'
+    require 'zlib'
+
+    tar_extract = Gem::Package::TarReader.new(Zlib::GzipReader.open(file_path))
+    tar_extract.rewind # The extract has to be rewinded after every iteration
+    tar_extract.each do |entry|
+      if entry.full_name.include? "DESCRIPTION"
+        puts entry.full_name
+        puts "#"*50
+        puts entry.read
+        puts "#"*50
+        break
       end
     end
+    tar_extract.close
   end
 
   def realtime &block
-
     time = Benchmark.realtime do
       yield
     end
