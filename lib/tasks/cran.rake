@@ -1,6 +1,8 @@
+require 'rubygems/package'
 require 'net/http'
 require 'uri'
 require "dcf"
+require 'zlib'
 require 'benchmark'
 
 namespace :cran do
@@ -29,9 +31,18 @@ namespace :cran do
 
         download_file package_url, file_name
 
-        extract_file "./packages/#{file_name}"
+        data = extract_data "./packages/#{file_name}"
 
         # create models
+        pack = Package.find_or_initialize_by({
+            name: name,
+            version: version,
+            date_publication: data[:date_publication],
+            title: data[:title],
+            description: data[:description]
+          })
+        puts pack.inspect
+        puts pack.save!
         # Package
         # Author(s)
         # Maintainer(s)
@@ -43,25 +54,34 @@ namespace :cran do
   def download_file url, file_name
     resp = Net::HTTP.get(URI.parse(url))
 
-    IO.binwrite("./packages/#{file_name}", resp)
+    IO.binwrite(file_name, resp)
   end
 
-  def extract_file file_path
-    require 'rubygems/package'
-    require 'zlib'
-
+  def extract_data file_path
+    output = {}
     tar_extract = Gem::Package::TarReader.new(Zlib::GzipReader.open(file_path))
     tar_extract.rewind # The extract has to be rewinded after every iteration
     tar_extract.each do |entry|
       if entry.full_name.include? "DESCRIPTION"
         puts entry.full_name
         puts "#"*50
-        puts entry.read
+        entry.read.each_line do |line|
+          if line.include? "Title:"
+            output[:title] = line.split(": ").last.strip
+          end
+          if line.include? "Description:"
+            output[:description] = line.split(": ").last.strip
+          end
+          if line.include? "Date/Publication:"
+            output[:date_publication] = line.split(": ").last.strip
+          end
+        end
         puts "#"*50
         break
       end
     end
     tar_extract.close
+    output
   end
 
   def realtime &block
