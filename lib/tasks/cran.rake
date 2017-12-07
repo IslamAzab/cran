@@ -22,11 +22,28 @@ namespace :cran do
         package_name    = package["Package"]
         package_version = package["Version"]
 
-        package_url = "https://cran.r-project.org/src/contrib/#{package_name}_#{package_version}.tar.gz"
+        package_file_name = "#{package_name}_#{package_version}.tar.gz"
+
+        package_url = "https://cran.r-project.org/src/contrib/#{package_file_name}"
         puts package_url
+
+        download_file package_file_name
+
       end
     end
 
+  end
+
+  def download_file file_name
+    # url_base = "https://cran.r-project.org/src/contrib"
+    # url = "#{url_base}/#{file_name}"
+    # f = open("./packages/#{file_name}", "w")
+    Net::HTTP.start("cran.r-project.org") do |http|
+      resp = http.get("/src/contrib/#{file_name}")
+      open("./packages/#{file_name}", "wb") do |file|
+        file.write(resp.body)
+      end
+    end
   end
 
   def realtime &block
