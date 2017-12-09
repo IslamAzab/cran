@@ -20,7 +20,7 @@ namespace :cran do
     end
 
     realtime do
-      packages.first(1).each do |package|
+      packages.first(100).each do |package|
       # packages.each do |package|
         name    = package["Package"]
         version = package["Version"]
@@ -42,7 +42,7 @@ namespace :cran do
             title: data[:title],
             description: data[:description]
           })
-        puts pack.inspect
+        # puts pack.inspect
         # puts pack.save!
         # Package
         # Author(s)
@@ -68,18 +68,21 @@ namespace :cran do
         parser = DebianControlParser.new(entry.read)
         parser.paragraphs do |paragraph|
           paragraph.fields do |name, value|
-            puts "Name=#{name} / Value=#{value}"
+            # puts "Name=#{name} / Value=#{value}"
             output[:title]            = value if name == "Title"
             output[:description]      = value if name == "Description"
             output[:date_publication] = value if name == "Date/Publication"
             # Author: Scott Fortmann-Roe
             # Maintainer: Scott Fortmann-Roe <scottfr@berkeley.edu>
-            # if name == "Author"
-            #   output[:authors] = parse_authors(value)
-            # end
-            # if name == "Maintainer"
-            #   output[:maintainers] = parse_maintainers(value)
-            # end
+            if name == "Author"
+              output[:authors] = parse_authors(value)
+              puts "authors => #{output[:authors]}"
+              puts "-"*50
+            end
+            if name == "Maintainer"
+              output[:maintainer] = parse_maintainer(value)
+              puts "maintainer => #{output[:maintainer]}"
+            end
           end
         end
         puts "#"*50
@@ -88,6 +91,23 @@ namespace :cran do
     end
     tar_extract.close
     output
+  end
+
+  def parse_authors value
+    output = []
+    value.gsub(/(\[.*\]|\sand\s|\n)/,'').split(",").map(&:strip).each do |author|
+      name  = author.strip.gsub(/<.*>/,'').strip
+      email = author.match(/<(.*)>/)&.captures&.first
+      output << { name: name, email: email }
+    end
+    output
+  end
+
+  def parse_maintainer value
+    {
+      name:  value.strip.gsub(/<.*>/,'').strip,
+      email: value.match(/<(.*)>/)&.captures&.first
+    }
   end
 
   def realtime &block
