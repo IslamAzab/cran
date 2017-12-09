@@ -20,7 +20,7 @@ namespace :cran do
     end
 
     realtime do
-      packages.first(100).each do |package|
+      packages.first(50).each do |package|
       # packages.each do |package|
         name    = package["Package"]
         version = package["Version"]
@@ -35,6 +35,7 @@ namespace :cran do
         data = extract_data "./packages/#{file_name}"
 
         # create models
+        # Package
         pack = Package.find_or_initialize_by({
             name: name,
             version: version,
@@ -42,11 +43,33 @@ namespace :cran do
             title: data[:title],
             description: data[:description]
           })
-        # puts pack.inspect
-        # puts pack.save!
-        # Package
+
+        pack.save!
+
         # Author(s)
-        # Maintainer(s)
+        authors = []
+        data[:authors].each do |a|
+          author = Participant.find_or_initialize_by(name:  a[:name])
+          author.email = a[:email]
+          author.save!
+          authors << author
+        end
+        puts "authors"
+        puts authors.inspect
+        puts "-"*50
+        # Maintainer
+        puts "maintainer"
+        maintainer = Participant.find_or_initialize_by(name: data[:maintainer][:name])
+        maintainer.email = data[:maintainer][:email]
+        maintainer.save!
+        puts maintainer.inspect
+        puts "="*50
+
+        puts "package"
+        puts pack.inspect
+        pack.authors     = authors
+        pack.maintainers = [maintainer]
+        puts pack.save!
       end
     end
 
@@ -63,8 +86,8 @@ namespace :cran do
     tar_extract.rewind # The extract has to be rewinded after every iteration
     tar_extract.each do |entry|
       if entry.full_name.include? "DESCRIPTION"
-        puts entry.full_name
-        puts "#"*50
+        # puts entry.full_name
+        # puts "#"*50
         parser = DebianControlParser.new(entry.read)
         parser.paragraphs do |paragraph|
           paragraph.fields do |name, value|
@@ -76,16 +99,16 @@ namespace :cran do
             # Maintainer: Scott Fortmann-Roe <scottfr@berkeley.edu>
             if name == "Author"
               output[:authors] = parse_authors(value)
-              puts "authors => #{output[:authors]}"
-              puts "-"*50
+              # puts "authors => #{output[:authors]}"
+              # puts "-"*50
             end
             if name == "Maintainer"
               output[:maintainer] = parse_maintainer(value)
-              puts "maintainer => #{output[:maintainer]}"
+              # puts "maintainer => #{output[:maintainer]}"
             end
           end
         end
-        puts "#"*50
+        # puts "#"*50
         break
       end
     end
@@ -95,8 +118,8 @@ namespace :cran do
 
   def parse_authors value
     output = []
-    value.gsub(/(\[.*\]|\sand\s|\n)/,'').split(",").map(&:strip).each do |author|
-      name  = author.strip.gsub(/<.*>/,'').strip
+    value.gsub(/(\[.*\]|\n)/,'').split(/,|\sand\s/).reject(&:empty?).map(&:strip).each do |author|
+      name  = author.gsub(/<.*>/,'').strip
       email = author.match(/<(.*)>/)&.captures&.first
       output << { name: name, email: email }
     end
