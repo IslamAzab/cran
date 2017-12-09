@@ -57,3 +57,5 @@ gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 gem 'shog'
 
 gem 'treetop-dcf', '~> 0.2.1'
+
+gem 'debian-control-parser', '~> 1.0'

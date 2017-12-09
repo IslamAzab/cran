@@ -4,6 +4,7 @@ require 'uri'
 require "dcf"
 require 'zlib'
 require 'benchmark'
+require 'debian_control_parser'
 
 namespace :cran do
   desc "Index CRAN packages"
@@ -27,9 +28,9 @@ namespace :cran do
         file_name = "#{name}_#{version}.tar.gz"
 
         package_url = "https://cran.r-project.org/src/contrib/#{file_name}"
-        puts package_url
+        # puts package_url
 
-        download_file package_url, file_name
+        download_file package_url, "./packages/#{file_name}"
 
         data = extract_data "./packages/#{file_name}"
 
@@ -42,7 +43,7 @@ namespace :cran do
             description: data[:description]
           })
         puts pack.inspect
-        puts pack.save!
+        # puts pack.save!
         # Package
         # Author(s)
         # Maintainer(s)
@@ -53,7 +54,6 @@ namespace :cran do
 
   def download_file url, file_name
     resp = Net::HTTP.get(URI.parse(url))
-
     IO.binwrite(file_name, resp)
   end
 
@@ -65,15 +65,21 @@ namespace :cran do
       if entry.full_name.include? "DESCRIPTION"
         puts entry.full_name
         puts "#"*50
-        entry.read.each_line do |line|
-          if line.include? "Title:"
-            output[:title] = line.split(": ").last.strip
-          end
-          if line.include? "Description:"
-            output[:description] = line.split(": ").last.strip
-          end
-          if line.include? "Date/Publication:"
-            output[:date_publication] = line.split(": ").last.strip
+        parser = DebianControlParser.new(entry.read)
+        parser.paragraphs do |paragraph|
+          paragraph.fields do |name, value|
+            puts "Name=#{name} / Value=#{value}"
+            output[:title]            = value if name == "Title"
+            output[:description]      = value if name == "Description"
+            output[:date_publication] = value if name == "Date/Publication"
+            # Author: Scott Fortmann-Roe
+            # Maintainer: Scott Fortmann-Roe <scottfr@berkeley.edu>
+            # if name == "Author"
+            #   output[:authors] = parse_authors(value)
+            # end
+            # if name == "Maintainer"
+            #   output[:maintainers] = parse_maintainers(value)
+            # end
           end
         end
         puts "#"*50
