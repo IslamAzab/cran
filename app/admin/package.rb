@@ -12,8 +12,8 @@ ActiveAdmin.register Package do
 #   permitted
 # end
 
-  # filter :authors, as: :select2
-  # filter :maintainers, as: :select2
+  filter :authors, as: :select
+  filter :maintainers, as: :select
   filter :name
   filter :version
   filter :date_publication
