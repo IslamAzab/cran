@@ -59,3 +59,5 @@ gem 'shog'
 gem 'treetop-dcf', '~> 0.2.1'
 
 gem 'debian-control-parser', '~> 1.0'
+
+gem 'whenever', '~> 0.10.0'
