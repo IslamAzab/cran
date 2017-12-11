@@ -44,6 +44,9 @@ namespace :cran do
             description: data[:description]
           })
 
+        pack.file_name    = file_name
+        pack.file_content = File.binread("./packages/#{file_name}")
+
         pack.save!
 
         # Author(s)
