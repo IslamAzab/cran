@@ -62,6 +62,7 @@ gem 'debian-control-parser', '~> 1.0'
 
 gem 'activeadmin', '~> 1.1'
 
-gem 'activeadmin-select2', '~> 0.1.0'
 gem 'jquery-rails'
 gem 'select2-rails'
+
+gem 'activeadmin-select2', github: 'mfairburn/activeadmin-select2'
